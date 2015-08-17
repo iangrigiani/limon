@@ -1,4 +1,4 @@
-package com.android.nacho.probando;
+package com.android.nacho.probando.utils;
 
 import java.util.Collection;
 import java.util.Random;
@@ -7,9 +7,11 @@ import java.util.Random;
  * Created by nacho on 24/05/15.
  */
 public class Randomize {
-    Random r = new Random();
+    Random r = null;
 
-
+    public Randomize() {
+        r = new Random();
+    }
 
 
     public Collection<Integer> getRandomList() {

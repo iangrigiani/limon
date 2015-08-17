@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<nivel numero="1">
+    <bloques>
+        <cantidadBloquesATocar>7</cantidadBloquesATocar>
+        <toquesMax>4</toquesMax>
+        <columnasGrilla>2</columnasGrilla>
+        <filasGrilla>2</filasGrilla>
+        <bloque>
+            <id>1</id>
+            <posicionX>100</posicionX>
+            <posicionY>100</posicionY>
+        </bloque>
+        <bloque>
+            <id>2</id>
+            <posicionX>200</posicionX>
+            <posicionY>100</posicionY>
+        </bloque>
+        <bloque>
+            <id>3</id>
+            <posicionX>100</posicionX>
+            <posicionY>200</posicionY>
+        </bloque>
+        <bloque>
+            <id>4</id>
+            <posicionX>200</posicionX>
+            <posicionY>200</posicionY>
+        </bloque>
+    </bloques>
+</nivel>

@@ -1,11 +1,26 @@
 package com.android.nacho.probando;
 
-import android.support.v7.app.ActionBarActivity;
+import android.content.Context;
+import android.content.res.AssetManager;
+import android.graphics.Color;
 import android.os.Bundle;
+import android.support.v7.app.ActionBarActivity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
+import android.widget.GridLayout;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+
+import com.android.nacho.probando.utils.Randomize;
+import com.android.nacho.probando.utils.XmlParser;
+
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -13,7 +28,7 @@ public class MainActivity extends ActionBarActivity {
     private Randomize random;
 
     // Cantidad de bloques que hay que tocar para pasar el nivel
-    private static final int cantidadBloquesATocar = 7;
+    private int cantidadBloquesATocar;
     // Contador de bloques tocados en el nivel
     private int cantidadBloquesTocados = 0;
     // Cantidad de veces que se debe tocar el bloque
@@ -23,20 +38,40 @@ public class MainActivity extends ActionBarActivity {
     // Identificador del bloque que debe tocarse
     private int numBloque;
     // Cantidad maxima de toques para un bloque
-    private int toquesMax = 4;
+    private int toquesMax;
     // Cantidad de bloques del nivel
-    private int cantidadBloquesNivel = 4;
+    private int cantidadBloquesNivel;
     // Tiempo inicial del juego
     private long tiempoInicial=0;
     // Tiempo final del juego
     private long tiempoFinal=0;
 
+    // grilla donde van los bloques
+    private int columnasGrilla;
+    private int filasGrilla;
+
+    // Listado de bloques predefinidos del nivel
+    Button botones[];
+
+    String nivel;
+
+    XmlParser parser;
+    Context context;
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        context = getApplicationContext();
+
         setContentView(R.layout.activity_main);
         random = new Randomize();
+
+        Bundle b = getIntent().getExtras();
+        nivel = b.getString("nivel");
     }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -60,53 +95,40 @@ public class MainActivity extends ActionBarActivity {
         return super.onOptionsItemSelected(item);
     }
 
-
-    public void clickBoton1(View arg0) {
-        tocoBloque(1);
-    }
-
-    public void clickBoton2(View arg0) {
-        tocoBloque(2);
-    }
-
-
-    public void clickBoton3(View arg0) {
-        tocoBloque(3);
-    }
-
-
-    public void clickBoton4(View arg0) {
-        tocoBloque(4);
-    }
-
-
     private void ganaste() {
-        tiempoFinal = System.nanoTime() - tiempoInicial;
-        TextView texto = (TextView) findViewById(R.id.lToques);
-        texto.setText("GANASTE!!");
 
-        TextView texto2 = (TextView) findViewById(R.id.lBloque);
+        tiempoFinal = System.nanoTime() - tiempoInicial;
+        TextView texto = (TextView) findViewById(R.id.textoFooter);
+
         Double tiempo = tiempoFinal / 1000000000.0;
-        texto2.setText("Tiempo estimado: " + String.valueOf(tiempo).substring(0, 5) + " seg");
+        texto.setText("GANASTE!! Tiempo estimado: " + String.valueOf(tiempo).substring(0, 5) + " seg");
+
+        finalizar();
     }
 
     private void perdiste() {
-        TextView texto = (TextView) findViewById(R.id.lToques);
+        TextView texto = (TextView) findViewById(R.id.textoFooter);
         texto.setText("PERDISTE!!");
-
-        TextView texto2 = (TextView) findViewById(R.id.lBloque);
-        texto2.setText("");
+        finalizar();
     }
 
+    private void finalizar() {
+        botones[numBloque-1].setText("");
+        for (int a = 0; a < cantidadBloquesNivel; a++) {
+            botones[a].setEnabled(false);
+        }
+    }
     private void tocoBloque(int bloqueTocado) {
         if (numBloque == bloqueTocado) {
             toquesAcumulados++;
+            if (toquesAcumulados == 1) {
+                botones[numBloque-1].setText("");
+            }
             if (toquesAcumulados == cantidadToquesPorBloque) {
                 cantidadBloquesTocados++;
 
                 if (cantidadBloquesTocados == cantidadBloquesATocar) {
                     ganaste();
-                    iniciar();
                 } else {
                     accion();
                     toquesAcumulados = 0;
@@ -114,11 +136,70 @@ public class MainActivity extends ActionBarActivity {
             }
         } else {
             perdiste();
-            iniciar();
         }
     }
 
+    private void cargarNivel() {
+        AssetManager assetManager = context.getAssets();
+        InputStream nivelXml = null;
+        try {
+            nivelXml = assetManager.open(nivel);
+        } catch (IOException e) {
+            TextView texto = (TextView) findViewById(R.id.textoFooter);
+            texto.setText("Error al cargar el nivel");
+
+            e.printStackTrace();
+        }
+
+        parser = new XmlParser();
+        ArrayList<Bloque> bloques = (ArrayList<Bloque>)parser.parsear(nivelXml);
+        cantidadBloquesATocar = parser.getCantidadBloquesATocar();
+        toquesMax = parser.getToquesMax();
+        columnasGrilla = parser.getColumnasGrilla();
+        filasGrilla = parser.getFilasGrilla();
+
+        cantidadBloquesNivel = bloques.size();
+        botones = new Button[cantidadBloquesNivel];
+
+        Iterator<Bloque> itBloque = bloques.iterator();
+        int i = 0;
+
+        Bloque bloque;
+        GridLayout fondo = (GridLayout) findViewById(R.id.fondoBotones);
+
+        fondo.setColumnCount(columnasGrilla);
+        fondo.setRowCount(filasGrilla);
+
+        int anchoBoton = fondo.getWidth() / columnasGrilla;
+        int altoBoton = fondo.getHeight() / filasGrilla;
+
+        while (itBloque.hasNext()) {
+            bloque = itBloque.next();
+
+            int id = i+1;
+            botones[i] = new Button(getApplicationContext());
+            botones[i].setId(id);
+            botones[i].setTextColor(Color.parseColor("#B0171F"));
+            botones[i].setTextSize(20);
+            botones[i].setWidth(anchoBoton);
+            botones[i].setHeight(altoBoton);
+
+            //botones[i].setLayoutParams(param);
+            //botones[i].setMinimumWidth(100);
+            //botones[i].setMinWidth(100);
+
+            //botones[i].setText(String.valueOf(i));
+
+            botones[i].setOnClickListener(handleOnClick(botones[i]));
+            fondo.addView(botones[i]);
+
+            i++;
+        }
+
+    }
+
     public void setCondiciones(View arg0) {
+        cargarNivel();
         iniciar();
         accion();
     }
@@ -126,17 +207,34 @@ public class MainActivity extends ActionBarActivity {
 
     private void iniciar() {
         toquesAcumulados = 0;
+        cantidadBloquesTocados = 0;
         tiempoInicial = System.nanoTime();
+
+        for (int a = 0; a < cantidadBloquesNivel; a++) {
+            botones[a].setEnabled(true);
+            botones[a].setText("");
+        }
+
+        TextView texto = (TextView) findViewById(R.id.textoFooter);
+        texto.setText("");
     }
+
     private void accion() {
-
-
         cantidadToquesPorBloque = random.getRandomNumber(toquesMax);
         numBloque = random.getRandomNumber(cantidadBloquesNivel);
-        TextView texto = (TextView) findViewById(R.id.lToques);
-        texto.setText("Cantidad de toques: " + String.valueOf(cantidadToquesPorBloque));
 
-        TextView texto2 = (TextView) findViewById(R.id.lBloque);
-        texto2.setText("Numero de bloque: " + String.valueOf(numBloque));
+
+        botones[numBloque-1].setText(String.valueOf(cantidadToquesPorBloque));
+
     }
+
+
+    View.OnClickListener handleOnClick(final Button button) {
+        return new View.OnClickListener() {
+            public void onClick(View v) {
+                tocoBloque(button.getId());
+            }
+        };
+    }
+
 }
